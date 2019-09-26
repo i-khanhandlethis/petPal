@@ -94,7 +94,7 @@ bool downloadUpdate(String url)
     if (httpCode == HTTP_CODE_OK)
     {
 
-      int contentLength = http.getSize();
+      size_t contentLength = http.getSize();
       USE_SERIAL.println("contentLength : " + String(contentLength));
 
       if (contentLength > 0)
@@ -216,16 +216,8 @@ unsigned long previousMillis = 0;
 
 void loop()
 {
-
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= interval) {    
-    previousMillis = currentMillis;
-    ledState = ledState == LOW ? HIGH : LOW;
-    delay(100);
-    digitalWrite( BUILTIN_LED, ledState );
-    //test
-  }
+  Serial.println("Loop Started");
+    ESP.restart();
   
   // Just chill
   server.handleClient();
