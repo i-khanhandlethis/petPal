@@ -19,7 +19,7 @@
 #define USE_SERIAL Serial
 
 #define CURRENT_VERSION VERSION
-#define CLOUD_FUNCTION_URL "https://us-central1-petpal-247009.cloudfunctions.net/getDownloadUrl-1"
+#define CLOUD_FUNCTION_URL "https://us-central1-petpal-247009.cloudfunctions.net/getDownloadUrl"
 
 WiFiClient client;
 #if defined(ESP8266)
