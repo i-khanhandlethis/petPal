@@ -211,7 +211,7 @@ void setup()
 }
 
 int ledState = LOW;
-const long interval = 2000;
+const long interval = 1000;
 unsigned long previousMillis = 0;
 
 void loop()
@@ -221,8 +221,9 @@ void loop()
 
   if (currentMillis - previousMillis >= interval) {    
     previousMillis = currentMillis;
-    
-      }
+    ledState = ledState == LOW ? HIGH : LOW;
+    digitalWrite( BUILTIN_LED, ledState );
+  }
   
   // Just chill
   server.handleClient();
