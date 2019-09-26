@@ -221,9 +221,7 @@ void loop()
 
   if (currentMillis - previousMillis >= interval) {    
     previousMillis = currentMillis;
-    ledState = ledState == LOW ? HIGH : LOW;
-    digitalWrite( BUILTIN_LED, ledState );
-  }
+      }
   
   // Just chill
   server.handleClient();
