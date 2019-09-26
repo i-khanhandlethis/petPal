@@ -98,7 +98,7 @@ exports.getDownloadUrl = async ( req, res ) => {
           fullname,
           version,
           createdAt
-        FROM \`gcloud-ota-update.ota.firmwares\`
+        FROM \`PetPal.ota.firmwares\`
         where variant = @variant
         order by createdAt desc
         limit 1      
