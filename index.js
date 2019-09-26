@@ -98,7 +98,7 @@ exports.getDownloadUrl = async ( req, res ) => {
           fullname,
           version,
           createdAt
-        FROM \`PetPal.ota.firmwares\`
+        FROM \`petpal-247009.ota.firmwares\`
         where variant = @variant
         order by createdAt desc
         limit 1      
