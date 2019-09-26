@@ -222,6 +222,7 @@ void loop()
   if (currentMillis - previousMillis >= interval) {    
     previousMillis = currentMillis;
     ledState = ledState == LOW ? HIGH : LOW;
+    delay(100);
     digitalWrite( BUILTIN_LED, ledState );
     //test
   }
