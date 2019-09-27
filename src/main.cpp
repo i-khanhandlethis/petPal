@@ -1,5 +1,4 @@
 #include <stdio.h>
-#define VARIANT "esp32"
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -15,9 +14,10 @@
 #include <WiFi.h>
 #include <FirebaseESP32.h>
 #include <WebServer.h>
-#include <WiFi.h>
 #include <HTTPClient.h>
 #include <Update.h>
+#define VARIANT "esp32"
+
 #include <WiFiManager.h>
 
 #include "sleep.h"
@@ -26,14 +26,10 @@
 #define USE_SERIAL Serial
 
 #define CURRENT_VERSION VERSION
-#define CLOUD_FUNCTION_URL "https://us-central1-petpal-247009.cloudfunctions.net/getDownloadUrl"
+#define CLOUD_FUNCTION_URL "http://us-central1-petpal-247009.cloudfunctions.net/getDownloadUrl"
 
 WiFiClient client;
-#if defined(ESP8266)
-ESP8266WebServer server(80);
-#else
 WebServer server(80);
-#endif
 
 int TIME_TO_SLEEP = 30;
 int wakeUpState = 0;
