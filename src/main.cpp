@@ -1,20 +1,27 @@
+#include <stdio.h>
+#define VARIANT "esp32"
 #include <Arduino.h>
-
-#include <DNSServer.h>
-#if defined(ESP8266)
-#include <ESP8266WebServer.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
-#define VARIANT "esp8266"
-#else
+#include <Wire.h>
+#include <SPI.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <EEPROM.h>
+#include <TimeLib.h>
+#include <ArduinoJson.h>
+#include <FS.h>
+#include <SPIFFS.h>
+#include <WiFi.h>
+#include <FirebaseESP32.h>
 #include <WebServer.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Update.h>
-#define VARIANT "esp32"
-#endif
-
 #include <WiFiManager.h>
+
+#include "sleep.h"
+
 
 #define USE_SERIAL Serial
 
@@ -27,6 +34,10 @@ ESP8266WebServer server(80);
 #else
 WebServer server(80);
 #endif
+
+int TIME_TO_SLEEP = 30;
+int wakeUpState = 0;
+
 
 /* 
  * Check if needs to update the device and returns the download url.
@@ -217,7 +228,7 @@ unsigned long previousMillis = 0;
 void loop()
 {
   Serial.println("Loop Started");
-    ESP.restart();
+  deepSleepProtocols(10, 1);
   
   // Just chill
   server.handleClient();
