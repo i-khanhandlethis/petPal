@@ -329,10 +329,10 @@ int checkPedometer()
         String dataSave;
 
         if (devState == 0)
-            dataSave = "\"TIMESTAMP\":\"" + String(now() + stepsminutes * 60) + "\",\"STEPS\":\"" + stepsTaken + "\",\"BATTERY\":\"" + BatteryVoltage + "\"}_";
+            dataSave = "\"TIMESTAMP\":\"" + String(now() + stepsminutes * 60) + "\",\"STEPS\":\"" + stepsTaken + "\",\"BATTERY\":\"" + battVoltage() + "\"}_";
 
         if (devState == 1)
-            dataSave = "\"TIMESTAMP\":\"" + String(now()) + "\",\"WALKER\":\"" + stepsTaken + "\",\"BATTERY\":\"" + BatteryVoltage + "\"}_";
+            dataSave = "\"TIMESTAMP\":\"" + String(now()) + "\",\"WALKER\":\"" + stepsTaken + "\",\"BATTERY\":\"" + battVoltage() + "\"}_";
 
         if (!file.print(dataSave))
             Serial.println("File write failed");

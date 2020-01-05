@@ -6,9 +6,9 @@
 
 int sensorPin = 25; // select the input pin for the potentiometer
 int sensorValue = 0;
-int battVoltageConverter(int v)
+int battVoltage()
 {
-    sensorValue = v;
+    sensorValue = analogRead(sensorPin);
         delay(10);
     Serial.print("Battery voltage: ");
     float voltage = 3.3 / 4095 * sensorValue;

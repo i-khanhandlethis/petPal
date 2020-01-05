@@ -22,6 +22,7 @@
 #include "filesystems/filesystem.h"
 #include "filesystems/esp32-mqtt.h"
 #include "movementalgorithims/MovementCycle.h"
+#include "health/health.h"
 //fillo0
 //Pins declaration
 const byte int1Pin = 21; //Use pin 2 for int.0 on uno
@@ -91,10 +92,7 @@ TaskHandle_t Task2;
 char *Val1;
 char *Val2;
 char *Val3;
-int BatteryVoltage = 0;
-void battVoltage(){
-  BatteryVoltage = analogRead(25);
-}
+
 void parseBLEInput()
 {
   if (recievedValueString.length() != 0)
@@ -378,7 +376,7 @@ void setup()
   Serial.setDebugOutput(false);
   pinMode(26, OUTPUT);
   wakeUpProtocols();
-  battVoltage();
+
   if (!SPIFFS.begin())
   {
     Serial.println("Failed to mount file system.\n RESTART device");
@@ -387,6 +385,7 @@ void setup()
 
   if (bootCount == 0)
   {
+    
     setupXLGYRO();
     setTime(0, 0, 0, 1, 1, 2019);
     
