@@ -22,7 +22,7 @@
 #include "filesystems/filesystem.h"
 #include "filesystems/esp32-mqtt.h"
 #include "movementalgorithims/MovementCycle.h"
-//filly
+//fillo
 //Pins declaration
 const byte int1Pin = 21; //Use pin 2 for int.0 on uno
 //const byte int2Pin = 22; //Use pin 2 for int.0 on uno
