@@ -15,6 +15,8 @@
 #include <WiFi.h>
 #include <Wire.h>
 #include <WebServer.h>
+#include <soc/sens_reg.h>
+
 #define VARIANT "esp32"
 
 #include "scheduler/scheduler.h"
@@ -70,7 +72,11 @@ bool STATE_POLLING = false;
 bool STATE_CLOUD = false;
 bool STATE_BLE = false;
 
-void setupBLE();
+ extern uint64_t reg_a;
+ extern uint64_t reg_b;
+ extern uint64_t reg_c;
+
+
 class MyServerCallbacks : public BLEServerCallbacks
 {
 public:
@@ -88,6 +94,69 @@ public:
   }
 };
 TaskHandle_t Task2;
+
+//BLE Functions
+class MyCallbacks : public BLECharacteristicCallbacks
+{
+  void onWrite(BLECharacteristic *pCharacteristic)
+  {
+    std::string rxValue = pCharacteristic->getValue();
+
+    if (rxValue.length() > 0)
+    {
+      Serial.println("*********");
+      recievedValueString = "";
+      for (int i = 0; i < rxValue.length(); i++)
+      {
+        //  Serial.print(rxValue[i]);
+        recievedValueString = recievedValueString + rxValue[i];
+      }
+      Serial.print("Received String: ");
+      Serial.print(recievedValueString);
+      recievedValue = const_cast<char *>(recievedValueString.c_str());
+      Serial.print(" > > > Converted to Char* : ");
+      Serial.println(recievedValue);
+      Serial.println();
+      Serial.println("*********");
+    }
+  }
+};
+
+extern bool BLEFlag;
+void setupBLE(){
+    reg_a = READ_PERI_REG(SENS_SAR_START_FORCE_REG);
+    reg_b = READ_PERI_REG(SENS_SAR_READ_CTRL2_REG);
+    reg_c = READ_PERI_REG(SENS_SAR_MEAS_START2_REG);
+    BLEFlag = true;
+      DOGNAME = dogNameRetriever();
+      BLEDevice::init(DOGNAME); //Give it a name
+      //esp_bt_controller_enable(ESP_BT_MODE_BLE);
+      BLEServer *pServer = BLEDevice::createServer();              //Create the BLE Server
+      pServer->setCallbacks(new MyServerCallbacks());              // Create the BLE Service
+      BLEService *pService = pServer->createService(SERVICE_UUID); // Create a BLE Service
+
+      DISTANCECharacteristic = pService->createCharacteristic(
+          CHARACTERISTIC_UUID_DISTANCE,
+          BLECharacteristic::PROPERTY_READ |
+              BLECharacteristic::PROPERTY_WRITE |
+              BLECharacteristic::PROPERTY_NOTIFY);
+      DISTANCECharacteristic->addDescriptor(new BLE2902());
+
+      BLECharacteristic *pCharacteristic = pService->createCharacteristic(
+          CHARACTERISTIC_UUID_RX,
+          BLECharacteristic::PROPERTY_WRITE);
+
+      pCharacteristic->setCallbacks(new MyCallbacks());
+
+      Serial.println("Waiting a client connection to notify...");
+
+      // Start the service
+      pService->start();
+
+      // Start advertising
+      pServer->getAdvertising()->start();
+}
+
 
 char *Val1;
 char *Val2;
@@ -170,6 +239,7 @@ void parseBLEInput()
         DISTANCECharacteristic->setValue("failure");
         DISTANCECharacteristic->notify();
       }
+          adcFixer();
 
     }
     if (strcmp(Val1, "S") == 0)
@@ -179,13 +249,17 @@ void parseBLEInput()
     }
     if (strcmp(Val1, "w") == 0)
     {
+      if (devState == 0){
+        rtc_steps = 0;
+      }
       devState = 1;
-      rtc_steps = 0;
       recievedValueString = "";
       recievedValue = const_cast<char *>(recievedValueString.c_str());
       deepSleepProtocols();
     }
-    if(strcmp(Val1, "E") == 0){
+    if (strcmp(Val1, "E") == 0)
+    {
+      adcFixer();
       //btStop();
       deepSleepProtocols();
     }
@@ -194,32 +268,7 @@ void parseBLEInput()
   }
 }
 
-//BLE Functions
-class MyCallbacks : public BLECharacteristicCallbacks
-{
-  void onWrite(BLECharacteristic *pCharacteristic)
-  {
-    std::string rxValue = pCharacteristic->getValue();
 
-    if (rxValue.length() > 0)
-    {
-      Serial.println("*********");
-      //recievedValue = "";
-      for (int i = 0; i < rxValue.length(); i++)
-      {
-        //  Serial.print(rxValue[i]);
-        recievedValueString = recievedValueString + rxValue[i];
-      }
-      Serial.print("Received String: ");
-      Serial.print(recievedValueString);
-      recievedValue = const_cast<char *>(recievedValueString.c_str());
-      Serial.print(" > > > Converted to Char* : ");
-      Serial.println(recievedValue);
-      Serial.println();
-      Serial.println("*********");
-    }
-  }
-};
 
 /* 
  * Check if needs to update the device and returns the download url.
@@ -385,10 +434,10 @@ void setup()
 
   if (bootCount == 0)
   {
-    
+
     setupXLGYRO();
     setTime(0, 0, 0, 1, 1, 2019);
-    
+
     TIME_STEPS = now();
     TIME_DATAAQ = now();
     TIME_CLOUD = now();
@@ -397,45 +446,22 @@ void setup()
       setupCloudIoT();
       checkConnect();
     }
-                    if(WiFi_Off() == true)
-        Serial.println("WiFi Turned Off Completely.");
-      else
+
+    if (WiFi_Off() == true)
+      Serial.println("WiFi Turned Off Completely.");
+    else
       Serial.println("WiFi did not turn off.");
+
+    adcFixer();
+
     DOGNAME = dogNameRetriever();
     deepSleepProtocols();
   }
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0)
   {
     if (devState == 0)
-    {
-      DOGNAME = dogNameRetriever();
-      Serial.println("Button pressed!");
-      BLEDevice::init(DOGNAME); //Give it a name
-      //esp_bt_controller_enable(ESP_BT_MODE_BLE);
-      BLEServer *pServer = BLEDevice::createServer();              //Create the BLE Server
-      pServer->setCallbacks(new MyServerCallbacks());              // Create the BLE Service
-      BLEService *pService = pServer->createService(SERVICE_UUID); // Create a BLE Service
-
-      DISTANCECharacteristic = pService->createCharacteristic(
-          CHARACTERISTIC_UUID_DISTANCE,
-          BLECharacteristic::PROPERTY_READ |
-              BLECharacteristic::PROPERTY_WRITE |
-              BLECharacteristic::PROPERTY_NOTIFY);
-      DISTANCECharacteristic->addDescriptor(new BLE2902());
-
-      BLECharacteristic *pCharacteristic = pService->createCharacteristic(
-          CHARACTERISTIC_UUID_RX,
-          BLECharacteristic::PROPERTY_WRITE);
-
-      pCharacteristic->setCallbacks(new MyCallbacks());
-
-      Serial.println("Waiting a client connection to notify...");
-
-      // Start the service
-      pService->start();
-
-      // Start advertising
-      pServer->getAdvertising()->start();
+    {    
+      setupBLE();
 
       //esp_bt_controller_mem_release(ESP_BT_MODE_BTDM);
 
@@ -457,14 +483,17 @@ void setup()
       }
       if (deviceConnected)
         Serial.println("Device connected!");
-      else
+      else{
+        adcFixer();
         deepSleepProtocols();
+      }
 
       BLEstartscan = now();
       BLEwaitSeconds = 0;
       int delaytime = 25;
       while (deviceConnected && BLEwaitSeconds < delaytime)
       {
+        Serial.println("Waiting for BLE input");
         parseBLEInput();
         if (actionMode == 1)
         {
@@ -574,6 +603,9 @@ void setup()
           Serial.println("WiFi Turned Off Completely.");
         else
           Serial.println("WiFi did not turn off.");
+
+              adcFixer();
+
         break;
       case 2:
         Serial.println("Accelerate to space");
@@ -604,50 +636,29 @@ void setup()
     //Commence walker state
     else if (devState == 1)
     {
-
-      Serial.println("TimerBLEBoot!");
-      BLEDevice::init(DOGNAME); //Give it a name
-      //esp_bt_controller_enable(ESP_BT_MODE_BLE);
-      BLEServer *pServer = BLEDevice::createServer();              //Create the BLE Server
-      pServer->setCallbacks(new MyServerCallbacks());              // Create the BLE Service
-      BLEService *pService = pServer->createService(SERVICE_UUID); // Create a BLE Service
-
-      DISTANCECharacteristic = pService->createCharacteristic(
-          CHARACTERISTIC_UUID_DISTANCE,
-          BLECharacteristic::PROPERTY_READ |
-              BLECharacteristic::PROPERTY_WRITE |
-              BLECharacteristic::PROPERTY_NOTIFY);
-      DISTANCECharacteristic->addDescriptor(new BLE2902());
-
-      BLECharacteristic *pCharacteristic = pService->createCharacteristic(
-          CHARACTERISTIC_UUID_RX,
-          BLECharacteristic::PROPERTY_WRITE);
-
-      pCharacteristic->setCallbacks(new MyCallbacks());
-
-      Serial.println("Waiting a client connection to notify...");
-
-      // Start the service
-      pService->start();
-      
-      // Start advertising
-      pServer->getAdvertising()->start();
-
       int walkerSteps = checkPedometer();
+
+      setupBLE();
 
       time_t waitTime = now();
       int waitTimeSeconds = 0;
 
-        lastDevStateUpdate = 0;
-        String forprinting;
-        forprinting = walkerSteps+rtc_steps;
-        std::string sendval(forprinting.c_str());
-
+      String forprinting;
+      forprinting = walkerSteps + rtc_steps;
+      std::string sendval(forprinting.c_str());
+      Serial.print("waiting for connection");
       while (!deviceConnected && waitTimeSeconds < 20)
       {
+        delay(700);
+        digitalWrite(26, LOW);        
         waitTimeSeconds = now() - waitTime;
-        delay(1000);
+        Serial.print("(Connecting)been waiting for:");
+        Serial.print(waitTimeSeconds);
+        Serial.println("s");
+        delay(300);
+        digitalWrite(26, HIGH);
       }
+
       if (deviceConnected)
       {
         DISTANCECharacteristic->setValue(sendval);
@@ -672,7 +683,6 @@ void setup()
           lastDevStateUpdate = 0;
         }
       }
-
       deepSleepProtocols();
     }
   }

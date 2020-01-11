@@ -2,5 +2,7 @@
 #define HEALTH_H
 
 int battVoltage();
+void adcFixer();
+
 
 #endif

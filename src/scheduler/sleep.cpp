@@ -7,7 +7,6 @@
 #include <TimeLib.h>
 #include <ArduinoJson.h>
 #include <soc/rtc.h>
-#include <soc/sens_reg.h>
 
 RTC_DATA_ATTR time_t TIME_DATAAQ = 0;
 RTC_DATA_ATTR time_t TIME_CLOUD = 0;
@@ -23,11 +22,8 @@ RTC_DATA_ATTR int bootCount = 0;
 RTC_DATA_ATTR int devState = 0;
 RTC_DATA_ATTR int lastDevStateUpdate = 0;
 
-uint64_t reg_a;
-uint64_t reg_b;
-uint64_t reg_c;
+bool BLEFlag = false; 
 
-extern int BatteryVoltage;
 extern "C"
 {
 #include <esp_clk.h>
@@ -40,10 +36,6 @@ void wakeUpProtocols()
   uint64_t timeDiffs = (TIME_AT_WAKE - TIME_AT_SLEEP) / 1000000;
 
   uint64_t timeErrorCatcher = TIME_SLEPT * 1.5;
-
-reg_a = READ_PERI_REG(SENS_SAR_START_FORCE_REG);
-reg_b = READ_PERI_REG(SENS_SAR_READ_CTRL2_REG);
-reg_c = READ_PERI_REG(SENS_SAR_MEAS_START2_REG);
 
   if (timeDiffs >= 0 && timeDiffs < timeErrorCatcher)
   {
@@ -72,16 +64,22 @@ void deepSleepProtocols()
 
   if (devState == 1)
   {
-    TIME_TO_SLEEP = 40 * uS_TO_S_FACTOR;
-    btStop();
+    TIME_TO_SLEEP = 15 * uS_TO_S_FACTOR;
   }
   else if (devState == 0)
   {
     //battVoltageConverter(BatteryVoltage);
   }
-WRITE_PERI_REG(SENS_SAR_START_FORCE_REG, reg_a);  // fix ADC registers
-WRITE_PERI_REG(SENS_SAR_READ_CTRL2_REG, reg_b);
-WRITE_PERI_REG(SENS_SAR_MEAS_START2_REG, reg_c);
+  if(BLEFlag == true){
+    Serial.println("BLEFlag was set");
+    btStop();
+    adcFixer();
+    BLEFlag = false;
+  }
+  if (battVoltage() == 4095)
+  {
+  Serial.println("Error with batt");
+  }
   Serial.print("Setup ESP32 to sleep for " + String(TIME_TO_SLEEP / uS_TO_S_FACTOR) + " Seconds with State " + String(devState) + " | ");
   TIME_SLEPT = TIME_TO_SLEEP / uS_TO_S_FACTOR;
   bootCount++;
@@ -92,10 +90,13 @@ WRITE_PERI_REG(SENS_SAR_MEAS_START2_REG, reg_c);
   Serial.println("s");
   Serial.println("zzz\n\n\n");
 
+
   digitalWrite(26, LOW);
   TIME_NOW = now();
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_27, 1);
+
   ESP.deepSleep(TIME_TO_SLEEP);
 
   Serial.println("This should never be printed. If it does, call the exorcist.");
+  //if sleep isnt successful, restart
 }

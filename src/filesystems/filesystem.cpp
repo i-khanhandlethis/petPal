@@ -8,6 +8,7 @@
 #include <ArduinoJson.h>
 #include <FS.h>
 #include <SPIFFS.h>
+#include <soc/sens_reg.h>
 
 FirebaseData firebaseData;
 
@@ -18,6 +19,10 @@ const char *ID;
 const char *bootState;
 
 char daysavetime = 1;
+
+ uint64_t reg_a;
+ uint64_t reg_b;
+ uint64_t reg_c;
 
 std::string dogNameRetriever()
 {
@@ -62,6 +67,9 @@ std::string dogNameRetriever()
 
 bool setupWifi()
 {
+    reg_a = READ_PERI_REG(SENS_SAR_START_FORCE_REG);
+    reg_b = READ_PERI_REG(SENS_SAR_READ_CTRL2_REG);
+    reg_c = READ_PERI_REG(SENS_SAR_MEAS_START2_REG);
 
   File configFile = SPIFFS.open("/config.json", "r");
 
